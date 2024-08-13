@@ -1,0 +1,52 @@
+
+
+上传脚本到你的脚本文件夹（例如：/etc/storage/nft_ipset.sh）
+创建命令行快捷方式：
+ln -s /etc/storage/nft_ipset.sh /usr/bin/nfset
+
+添加可执行权限：
+chmod +x /etc/storage/nft_ipset.sh
+
+
+
+查看所有 IP 集合：
+nfset -L
+
+查看指定 IP 集合的内容：
+nfset -L <set_name>
+例子：
+nfset -L hip6
+
+添加 IP 地址到集合：
+nfset add <set_name> <ip_address>
+从集合中删除 IP 地址：
+nfset del <set_name> <ip_address>
+
+例子：
+nfset add hip6 2001:b011:1234:5678::/64
+nfset del hip6 2001:b011:1234:5678::/64
+
+
+
+
+
+测试ipv6过滤[no]（不支持ipv4 / ipv6首行和尾行都被过滤掉了）：
+nft list set inet fw4 hip6 | awk '/elements = \{/ {flag=1; next} /}/ {flag=0} flag' | tr -d '{} ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[ \t]*//'
+
+测试ipv4+ipv6过滤[no]（ipv4会残留剩余时间 / ipv6首行前面有个字符没过滤）：
+nft list set inet fw4 hip  | awk '/elements = \{/,/\}/ { if ($0 ~ /^[^ ]/) print }' | tr -d '{} ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[ \t]*//' | sed 's/ expires.*//'
+
+显示隐藏字符
+nft list set inet fw4 hip6 | cat -A
+
+测试ipv4+ipv6过滤[ok]
+nft list set inet fw4 hip | awk '/elements = \{/,/}/ {print}' | sed -e 's/^[^=]*= {//' -e 's/}.*$//' | sed -E 's/ (expires[^,]*),?/\n/g' | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[[:space:]]*//'
+nft list set inet fw4 hip6 | awk '/elements = \{/,/}/ {print}' | sed -e 's/^[^=]*= {//' -e 's/}.*$//' | sed -E 's/ (expires[^,]*),?/\n/g' | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[[:space:]]*//'
+
+
+
+
+
+
+
+
