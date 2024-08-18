@@ -50,3 +50,25 @@ nft list set inet fw4 hip6 | awk '/elements = \{/,/}/ {print}' | sed -e 's/^[^=]
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+##### 项目发起人：rer
+##### 项目协作者：ChatGPT
+
+
+
+
+
+
+
+
