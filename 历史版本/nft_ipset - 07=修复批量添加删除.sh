@@ -25,9 +25,6 @@ Nusage() {
     exit 1
 }
 
-# 设置默认文件路径
-Default_Path="/etc/storage"
-
 # 检查参数
 if [ "$#" -eq 1 ] && [ "$1" == "-L" ]; then
     nft list sets || { echo "Error listing sets"; exit 1; }
@@ -128,11 +125,11 @@ case "$ACTION" in
         if [ "$#" -ne 3 ]; then
             usage
         fi
-        IP_List=$3
-        if [[ ! "$IP_List" == *"/"* ]]; then
-            FILE_PATH="$Default_Path/$IP_List"
+        FILE_PATH=$3
+        if [[ ! "$FILE_PATH" == *"/"* ]]; then
+            FILE_PATH="/etc/storage/$FILE_PATH"
         fi
-        # echo "Processing file: $FILE_PATH"
+        # echo "Processing file: $FILE_PATH"（调试）
         while IFS= read -r line || [ -n "$line" ]; do
             # 去除前后空白字符
             line=$(echo "$line" | tr -d '[:space:]')
@@ -153,11 +150,11 @@ case "$ACTION" in
         if [ "$#" -ne 3 ]; then
             usage
         fi
-        IP_List=$3
-        if [[ ! "$IP_List" == *"/"* ]]; then
-            FILE_PATH="$Default_Path/$IP_List"
+        FILE_PATH=$3
+        if [[ ! "$FILE_PATH" == *"/"* ]]; then
+            FILE_PATH="/etc/storage/$FILE_PATH"
         fi
-        # echo "Processing file: $FILE_PATH"
+        # echo "Processing file: $FILE_PATH"（调试）
         while IFS= read -r line || [ -n "$line" ]; do
             # 去除前后空白字符
             line=$(echo "$line" | tr -d '[:space:]')

@@ -25,9 +25,6 @@ Nusage() {
     exit 1
 }
 
-# 设置默认文件路径
-Default_Path="/etc/storage"
-
 # 检查参数
 if [ "$#" -eq 1 ] && [ "$1" == "-L" ]; then
     nft list sets || { echo "Error listing sets"; exit 1; }
@@ -81,22 +78,22 @@ case "$ACTION" in
         IP_ADDRESS=$3
         # 检查集合是否存在
         if nft list set inet fw4 "$SET_NAME" >/dev/null 2>&1; then
-            # 检查 IP 地址是否在集合中
-            if nft list set inet fw4 "$SET_NAME" | grep -q "$IP_ADDRESS"; then
-                echo "Error: IP address $IP_ADDRESS exist in $SET_NAME."
-            else
-                # 尝试添加 IP 地址/网段
-                if nft add element inet fw4 "$SET_NAME" { "$IP_ADDRESS" } 2>/dev/null; then
-                    # 如果希望在添加成功时显示提示信息，请取消以下行的注释
-                    # echo "Added $IP_ADDRESS to $SET_NAME."
-                    true
-                else
-                    # 如果添加失败并且错误是因为 IP 地址已存在，输出相应的错误信息
-                    echo "Error adding IP address: $IP_ADDRESS may already exist in $SET_NAME."
-                fi
-            fi
+        	# 检查 IP 地址是否在集合中
+        	if nft list set inet fw4 "$SET_NAME" | grep -q "$IP_ADDRESS"; then
+        		echo "Error: IP address $IP_ADDRESS exist in $SET_NAME."
+        	else
+        		# 尝试添加 IP 地址/网段
+        		if nft add element inet fw4 "$SET_NAME" { "$IP_ADDRESS" } 2>/dev/null; then
+        			# 如果希望在添加成功时显示提示信息，请取消以下行的注释
+        			# echo "Added $IP_ADDRESS to $SET_NAME."
+        			true
+        		else
+        			# 如果添加失败并且错误是因为 IP 地址已存在，输出相应的错误信息
+        			echo "Error adding IP address: $IP_ADDRESS may already exist in $SET_NAME."
+        		fi
+        	fi
         else
-            echo "Error: Set $SET_NAME does not exist."
+        	echo "Error: Set $SET_NAME does not exist."
         fi
         ;;
     del)
@@ -106,71 +103,48 @@ case "$ACTION" in
         IP_ADDRESS=$3
         # 检查集合是否存在
         if nft list set inet fw4 "$SET_NAME" >/dev/null 2>&1; then
-            # 检查 IP 地址是否在集合中
-            if nft list set inet fw4 "$SET_NAME" | grep -q "$IP_ADDRESS"; then
-                # 尝试删除 IP 地址/网段
-                if nft delete element inet fw4 "$SET_NAME" { "$IP_ADDRESS" } 2>/dev/null; then
-                    # 如果希望在删除成功时显示提示信息，请取消以下行的注释
-                    # echo "Deleted $IP_ADDRESS from $SET_NAME."
-                    true
-                else
-                    # 如果删除失败并且错误是因为 IP 地址不存在，输出相应的错误信息
-                    echo "Error deleting IP address: $IP_ADDRESS may not exist in $SET_NAME."
-                fi
-            else
-                echo "Error: IP address $IP_ADDRESS does not exist in $SET_NAME."
-            fi
+        	# 检查 IP 地址是否在集合中
+        	if nft list set inet fw4 "$SET_NAME" | grep -q "$IP_ADDRESS"; then
+        		# 尝试删除 IP 地址/网段
+        		if nft delete element inet fw4 "$SET_NAME" { "$IP_ADDRESS" } 2>/dev/null; then
+        			# 如果希望在删除成功时显示提示信息，请取消以下行的注释
+        			# echo "Deleted $IP_ADDRESS from $SET_NAME."
+        			true
+        		else
+        	        # 如果删除失败并且错误是因为 IP 地址不存在，输出相应的错误信息
+        	        echo "Error deleting IP address: $IP_ADDRESS may not exist in $SET_NAME."
+        	    fi
+        	else
+        		echo "Error: IP address $IP_ADDRESS does not exist in $SET_NAME."
+        	fi
         else
-            echo "Error: Set $SET_NAME does not exist."
+        	echo "Error: Set $SET_NAME does not exist."
         fi
         ;;
     adds)
         if [ "$#" -ne 3 ]; then
             usage
         fi
-        IP_List=$3
-        if [[ ! "$IP_List" == *"/"* ]]; then
-            FILE_PATH="$Default_Path/$IP_List"
+        FILE_PATH=$3
+        if [[ ! "$FILE_PATH" == *"/"* ]]; then
+            FILE_PATH="/etc/storage/$FILE_PATH"
         fi
-        # echo "Processing file: $FILE_PATH"
-        while IFS= read -r line || [ -n "$line" ]; do
-            # 去除前后空白字符
-            line=$(echo "$line" | tr -d '[:space:]')
-            if [ -n "$line" ]; then
-                if nft list set inet fw4 "$SET_NAME" | grep -q "$line" 2>/dev/null; then
-                	echo "$SET_NAME： Exist Repeat add $line "
-                else
-                	# 显示即将执行的 nft 命令（调试）
-                	# echo "nft add element inet fw4 \"$SET_NAME\" { \"$line\" }"
-                	# 添加 IP 地址到集合中
-                	nft add element inet fw4 "$SET_NAME" { "$line" }
-                	# echo "Successfully added $line to $SET_NAME"
-                fi
-            fi
+        while IFS= read -r line; do
+            line=$(echo "$line" | xargs)
+            nft add element inet fw4 "$SET_NAME" { "$line" } || echo "Error adding $line to $SET_NAME."
         done < "$FILE_PATH"
         ;;
     dels)
         if [ "$#" -ne 3 ]; then
             usage
         fi
-        IP_List=$3
-        if [[ ! "$IP_List" == *"/"* ]]; then
-            FILE_PATH="$Default_Path/$IP_List"
+        FILE_PATH=$3
+        if [[ ! "$FILE_PATH" == *"/"* ]]; then
+            FILE_PATH="/etc/storage/$FILE_PATH"
         fi
-        # echo "Processing file: $FILE_PATH"
-        while IFS= read -r line || [ -n "$line" ]; do
-            # 去除前后空白字符
-            line=$(echo "$line" | tr -d '[:space:]')
-            if [ -n "$line" ]; then
-            	if nft delete element inet fw4 "$SET_NAME" { "$line" } 2>/dev/null; then
-                	# 显示即将执行的 nft 命令（调试）
-                	# echo "nft delete element inet fw4 \"$SET_NAME\" { \"$line\" }"
-                    # echo "Successfully deleted $line from $SET_NAME" # 删除成功
-                    true
-                else
-                	echo "$SET_NAME : does not exist $line " # 删除失败
-                fi
-            fi
+        while IFS= read -r line; do
+            line=$(echo "$line" | xargs)
+            nft delete element inet fw4 "$SET_NAME" { "$line" } || echo "Error deleting $line from $SET_NAME."
         done < "$FILE_PATH"
         ;;
     -N)
