@@ -1,16 +1,8 @@
 # nfset
- nftables防火墙 移植iptables中ipset使用习惯 而设计
+* ### nftables 防火墙 移植 iptables 中 ipset 使用习惯 而设计
+<br>
 
-
-
-上传脚本到你的脚本文件夹（例如：/etc/storage/nft_ipset.sh）
-创建命令行快捷方式：
-ln -s /etc/storage/nft_ipset.sh /usr/bin/nfset
-
-添加可执行权限：
-chmod +x /etc/storage/nft_ipset.sh
-
-
+```
 【nfset】：
 	-L <set_name>                            List IPs in the specified set, with additional info
 	add <set_name> <ip_address>              Add IP address to the specified set
@@ -31,10 +23,27 @@ chmod +x /etc/storage/nft_ipset.sh
 	-D <set_name> 删除指定的集合表单
 	-F <set_name> 清空指定集合中的所有IP条目
 	-H， --help 使用帮助支持 设置类型 显示此帮助消息
+```
+
+<br>
+
+①. 使用 [Winscp] 上传脚本到你的脚本文件夹（例如：文件夹路径/脚本）
+>     /etc/storage/nft_ipset.sh
+
+②. 创建命令行快捷方式： 
+```
+ln -s /etc/storage/nft_ipset.sh /usr/bin/nfset
+```
+
+③. 添加可执行权限：
+```
+chmod +x /etc/storage/nft_ipset.sh
+```
 
 
+<br>
 
-
+```
 查看所有 IP 集合：
 nfset -L
 
@@ -51,9 +60,9 @@ nfset del <set_name> <ip_address>
 例子：
 nfset add hip6 2001:b011:1234:5678::/64
 nfset del hip6 2001:b011:1234:5678::/64
+```
 
-
-
+```
 创建 IP 合集：
 nfset -N cfnet ipv4
 nfset -N cfnet ipv6
@@ -61,27 +70,25 @@ nfset -N cfnet ipv6
 创建说明：
 nfset -N 名称(name) 协议(ipv4/ipv6) 备注(Note) timeout(?d?h?m?s)
 nfset -N cfnet ipv4 CF网段 timeout 7d
+```
 
+```
 删除 IP合集
 nfset -D cfnet
 
 批量添加/删除（设置好默认路径 才能用文件名模式）
 nfset adds cfnet /etc/storage/cfnet.txt
 nfset dels cfnet /etc/storage/cfnet.txt
-
 nfset adds cfnet cfnet.txt
 nfset dels cfnet cfnet.txt
 
-一键清空
+一键清空合集
 nfset -F cfnet
+```
 
 
 
-
-
-
-
-
+<br>
 
 ##### 项目发起人：rer
 ##### 项目协作者：ChatGPT
