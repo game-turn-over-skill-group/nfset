@@ -150,15 +150,15 @@ case "$ACTION" in
             # 去除前后空白字符
             line=$(echo "$line" | tr -d '[:space:]')
             if [ -n "$line" ]; then
-                if nft list set inet fw4 "$SET_NAME" | grep -q "$line" 2>/dev/null; then
-                	echo "$SET_NAME： Exist Repeat add $line "
-                else
+                #if nft list set inet fw4 "$SET_NAME" | grep -q "$line" 2>/dev/null; then
+                #	echo "$SET_NAME： Exist Repeat add $line "
+                #else
                 	# 显示即将执行的 nft 命令（调试）
                 	# echo "nft add element inet fw4 \"$SET_NAME\" { \"$line\" }"
                 	# 添加 IP 地址到集合中
                 	nft add element inet fw4 "$SET_NAME" { "$line" }
                 	# echo "Successfully added $line to $SET_NAME"
-                fi
+                #fi
             fi
         done < "$FILE_PATH"
         ;;
