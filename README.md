@@ -91,7 +91,7 @@ nfset -F cfnet
 <br>
 
 ##### 项目发起人：rer
-##### 项目协作者：ChatGPT
+##### 项目协作者：ChatGPT、豆包
 
 
 

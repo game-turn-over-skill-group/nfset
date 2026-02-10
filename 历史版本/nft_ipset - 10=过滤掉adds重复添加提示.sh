@@ -42,12 +42,10 @@ elif [ "$#" -eq 2 ] && [ "$1" == "-L" ]; then
                 print
             }
         '
-        # 核心修改：新增过滤 timeout 相关内容的逻辑（同时保留 expires 过滤）
-        ip_count=$(echo "$nft_output" | awk '/elements = \{/,/}/ { if ($0 ~ /^[^ ]/) print }' | sed -e 's/^[^=]*= {//' -e 's/}.*$//' | sed -E 's/ (timeout|expires)[^,]*//g' | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[[:space:]]*//' | wc -l)
+        ip_count=$(echo "$nft_output" | awk '/elements = \{/,/}/ { if ($0 ~ /^[^ ]/) print }' | sed -e 's/^[^=]*= {//' -e 's/}.*$//' | sed -E 's/ (expires[^,]*),?/\n/g' | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[[:space:]]*//' | wc -l)
         echo "Number of entries: $ip_count"
         echo "Members:"
-        # 核心修改：新增过滤 timeout 相关内容的逻辑（同时保留 expires 过滤）
-        echo "$nft_output" | awk '/elements = \{/,/}/ { if ($0 ~ /^[^ ]/) print }' | sed -e 's/^[^=]*= {//' -e 's/}.*$//' | sed -E 's/ (timeout|expires)[^,]*//g' | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[[:space:]]*//' | sort -u
+        echo "$nft_output" | awk '/elements = \{/,/}/ { if ($0 ~ /^[^ ]/) print }' | sed -e 's/^[^=]*= {//' -e 's/}.*$//' | sed -E 's/ (expires[^,]*),?/\n/g' | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[[:space:]]*//' | sort -u
     else
         echo "Error: Set $2 does not exist."
         exit 1
@@ -82,8 +80,8 @@ case "$ACTION" in
         fi
         # 检查集合是否存在
         if nft list set inet fw4 "$SET_NAME" >/dev/null 2>&1; then
-            nft list set inet fw4 "$SET_NAME" | awk '/set /{print; next} /elements = \{/,/}/ { if ($0 ~ /^[^ ]/) print }' | sed -e 's/^[^=]*= {//' -e 's/}.*$//' | sed -E 's/ (timeout|expires)[^,]*//g' | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[[:space:]]*//'
-            echo "Number of entries: $(nft list set inet fw4 "$SET_NAME" | grep -oP '(?<=elements = \{).*(?=})' | sed -E 's/ (timeout|expires)[^,]*//g' | tr ',' '\n' | wc -l)"
+            nft list set inet fw4 "$SET_NAME" | awk '/set /{print; next} /elements = \{/,/}/ { if ($0 ~ /^[^ ]/) print }' | sed -e 's/^[^=]*= {//' -e 's/}.*$//' | sed -E 's/ (expires[^,]*),?/\n/g' | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[[:space:]]*//'
+            echo "Number of entries: $(nft list set inet fw4 "$SET_NAME" | grep -oP '(?<=elements = \{).*(?=})' | tr ',' '\n' | wc -l)"
         else
             echo "Error: Set $SET_NAME does not exist."
         fi
