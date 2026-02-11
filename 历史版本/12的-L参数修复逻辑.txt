@@ -1,0 +1,43 @@
+
+elif [ "$#" -eq 2 ] && [ "$1" == "-L" ]; then
+    # 检查集合是否存在
+    if nft list set inet fw4 "$2" >/dev/null 2>&1; then
+        nft_output=$(nft list set inet fw4 "$2")
+        
+        # ========== 终极精准提取：set 名单{ 后 → elements = { 前的所有属性 ==========
+        echo "$nft_output" | awk -v setname="$2" '
+            # 第一步：匹配 "set 目标名单 {" 这行，标记开始（精准锚定起始点）
+            $1 == "set" && $2 == setname && $3 == "{" {
+                in_attr = 1
+                next  # 跳过这行本身，不输出
+            }
+            # 第二步：匹配任意缩进的 "elements = {" 行，标记结束
+            /^[[:space:]]*elements = \{/ {
+                in_attr = 0
+                next  # 跳过这行本身，不输出
+            }
+            # 第三步：仅在标记区间内，清理空格并输出非空行
+            in_attr == 1 {
+                gsub(/^[ \t]+/, "", $0)  # 清理所有开头空格
+                if ($0 != "") print       # 只输出非空行
+            }
+        '
+        
+        # ========== 处理IP条目（过滤timeout/expires，保留纯IP） ==========
+        # 提取 elements = { } 内的内容，过滤timeout/expires，统计数量并输出
+        ip_list=$(echo "$nft_output" | awk '/^[[:space:]]*elements = \{/,/}/ {
+            if ($0 !~ /^[[:space:]]*(elements = \{|\})/) print
+        }' | sed -E 's/ (timeout|expires)[^,]*//g' | tr -d ' ,' | sed '/^$/d' | sort -u)
+        
+        # 统计IP数量
+        ip_count=$(echo "$ip_list" | wc -l)
+        
+        # 输出结果
+        echo "Number of entries: $ip_count"
+        echo "Members:"
+        echo "$ip_list"
+    else
+        echo "Error: Set $2 does not exist."
+        exit 1
+    fi
+    exit 0

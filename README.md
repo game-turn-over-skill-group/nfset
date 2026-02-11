@@ -1,25 +1,28 @@
 # nfset
 * ### nftables 防火墙 移植 iptables 中 ipset 使用习惯 而设计
+
+> 重要说明：目前nfset只能在默认fw4链表中创建和删除名单 这是为了在已有链表中快速处理而设计
+
 <br>
 
 ```
 【nfset】：
-	-L <set_name>                            List IPs in the specified set, with additional info
-	add <set_name> <ip_address>              Add IP address to the specified set
-	del <set_name> <ip_address>              Delete IP address from the specified set
-	adds <set_name> <file_path>              Batch add IPs from the specified file to the set
-	dels <set_name> <file_path>              Batch delete IPs from the specified file from the set
-	-N <set_name> <type> [<comment>] [<flags>] Create a new set with the specified name and type
-	-D <set_name>                            Delete the specified set
-	-F <set_name>                            Flush all entries in the specified set
-	-H, --help                               Display this help message with supported set types
+	-L <set_name>                                           List IPs in the specified set, with additional info
+	add <set_name> <ip_address>                             Add IP address to the specified set
+	del <set_name> <ip_address>                             Delete IP address from the specified set
+	adds <set_name> <file_path>                             Batch add IPs from the specified file to the set
+	dels <set_name> <file_path>                             Batch delete IPs from the specified file from the set
+	-N <set_name> <type> [<comment>] [<flags>] [<timeout>]  Create a new set with the specified name and type
+	-D <set_name>                                           Delete the specified set
+	-F <set_name>                                           Flush all entries in the specified set
+	-H, --help                                              Display this help message with supported set types
 
 	-L <set_name> 列出指定集中的 IP，并提供附加信息
 	add <set_name> <ip_address> Add IP 地址/网段 添加到指定集
 	del <set_name> <ip_address> 从指定集中删除 IP 地址/网段
 	adds <set_name> <file_path> 指定文件中的批量添加 IP 添加到集合中
 	dels <set_name> <file_path> 从集合中 批量删除 指定文件中的 IP
-	-N <set_name> <type> [<comment>] [<flags>] 使用指定的名称和类型创建一个新集
+	-N <set_name> <type> [<comment>] [<flags>] [<timeout>] 使用指定的名称和类型创建一个新集
 	-D <set_name> 删除指定的集合表单
 	-F <set_name> 清空指定集合中的所有IP条目
 	-H， --help 使用帮助支持 设置类型 显示此帮助消息
@@ -68,8 +71,9 @@ nfset -N cfnet ipv4
 nfset -N cfnet ipv6
 
 创建说明：
-nfset -N 名称(name) 协议(ipv4/ipv6) 备注(Note) timeout(?d?h?m?s)
-nfset -N cfnet ipv4 CF网段 timeout 7d
+nfset -N 名称(name)、协议(ipv4/ipv6) 、备注(Note) 、类型(flags)、timeout(?d?h?m?s)
+nfset -N cfnet ipv4 CF网段 //默认为空时，使用interval 支持自动合并网段
+nfset -N hipz ipv4 隔离名单ipv4 flags:dynamic timeout:7d //使用:隔开自定义参数和内容
 ```
 
 ```

@@ -8,7 +8,7 @@ usage() {
     echo "  del <set_name> <ip_address>              Delete IP address from the specified set"
     echo "  adds <set_name> <file_path>              Batch add IPs from the specified file to the set"
     echo "  dels <set_name> <file_path>              Batch delete IPs from the specified file from the set"
-    echo "  -N <set_name> <type> [<comment>] [<flags>] [<timeout>]  Create a new set with the specified name and type"
+    echo "  -N <set_name> <type> [<comment>] [<flags>] Create a new set with the specified name and type"
     echo "  -D <set_name>                            Delete the specified set"
     echo "  -F <set_name>                            Flush all entries in the specified set"
     echo "  -H, --help                               Display this help message with supported set types"
@@ -18,11 +18,10 @@ usage() {
 
 # 支持的 set 类型，简化版
 Nusage() {
-    echo "Usage: $0 -N <set_name> <type> [<comment>] [<flags>] [<timeout>]"
+    echo "Usage: $0 -N <set_name> <type> [<comment>] [<flags>]"
     echo "       <type> can be 'ipv4' or 'ipv6'."
     echo "       <comment> is optional and will be added as a comment."
-    echo "       <flags> can be 'flags:dynamic', 'flags:interval' ."
-    echo "       <timeout> can be 'timeout:7d', 'timeout:12h', 'timeout:30m', 'timeout:60s'."
+    echo "       <flags> can include 'timeout', 'interval', etc."
     exit 1
 }
 
@@ -47,24 +46,20 @@ elif [ "$#" -eq 2 ] && [ "$1" == "-L" ]; then
                 in_attr = 0
                 next
             }
-            # 过滤闭合的}
-            /^[[:space:]]*}/ { next }
             in_attr == 1 {
                 gsub(/^[ \t]+/, "", $0)
                 if ($0 != "") print
             }
         '
-        # 统计IP数量（新增 s/}//g 过滤}，并修复空集合计数）
-        ip_list=$(echo "$nft_output" | awk '/elements = \{/,/}/ { if ($0 ~ /^[^ ]/) print }' | \
-            sed -e 's/^[^=]*= {//' -e 's/}.*$//' -e 's/}//g' | \
-            sed -E 's/ (timeout|expires)[^,]*//g' | tr -d ' ' | tr ',' '\n' | \
-            sed '/^$/d' | sed 's/^[[:space:]]*//')
-        ip_count=$(echo "$ip_list" | awk 'NF {count++} END {print count+0}')
+        # ========== 处理IP条目（过滤timeout/expires，保留纯IP） ==========
+        # 提取 elements = { } 内的内容，过滤timeout/expires，统计数量并输出
+        ip_list=$(echo "$nft_output" | awk '/elements = \{/,/}/ { if ($0 ~ /^[^ ]/) print }' | sed -e 's/^[^=]*= {//' -e 's/}.*$//' | sed -E 's/ (timeout|expires)[^,]*//g' | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sed 's/^[[:space:]]*//')
+        # 统计IP数量
+        ip_count=$(echo "$ip_list" | wc -l)
+        # 输出结果
         echo "Number of entries: $ip_count"
-        if [ "$ip_count" -gt 0 ]; then
-            echo "Members:"
-            echo "$ip_list" # 输出IP列表
-        fi
+        echo "Members:"
+        echo "$ip_list"
     else
         echo "Error: Set $2 does not exist."
         exit 1
@@ -210,92 +205,46 @@ case "$ACTION" in
             Nusage
         fi
         SET_NAME=$2
-        network_TYPE=$3
+        TYPE=$3
         COMMENT=""
         FLAGS=""
-        TIMEOUT="0s"  # 默认timeout为永久（0s）
-        FLAG_TYPE="interval"  # 默认flags为interval
-        
         # 检查是否有附加参数
         shift 3
         while [ "$#" -gt 0 ]; do
             case $1 in
-                # 兼容原有timeout 参数格式（timeout 7d）+ 新格式（timeout:7d）
                 timeout)
-                    TIMEOUT="$2"
+                    FLAGS+="timeout $2; "
                     shift 2
                     ;;
-                timeout:*)
-                    TIMEOUT="${1#timeout:}"
+                interval)
+                    FLAGS+="interval; "
                     shift
                     ;;
-                # 兼容flags 参数格式（flags dynamic）+ 新格式（flags:dynamic）
-                flags)
-                    FLAG_TYPE="$2"
-                    shift 2
-                    ;;
-                flags:*)
-                    FLAG_TYPE="${1#flags:}"
-                    shift
-                    ;;
-                # 剩余参数作为备注（支持空格拼接）
                 *)
-                    if [ -z "$COMMENT" ]; then
-                        COMMENT="$1"
-                    else
-                        COMMENT="$COMMENT $1"
-                    fi
+                    COMMENT="$1"
                     shift
                     ;;
             esac
         done
-
-        # 1. 校验协议类型并转换
-        case $network_TYPE in
+        # 自动转换类型
+        case $TYPE in
             ipv4)
-                network_TYPE="ipv4_addr"
+                TYPE="ipv4_addr"
                 ;;
             ipv6)
-                network_TYPE="ipv6_addr"
+                TYPE="ipv6_addr"
                 ;;
             *)
                 Nusage
                 ;;
         esac
-
-        # 2. 校验flags类型（仅允许dynamic/interval）
-        if [ "$FLAG_TYPE" != "dynamic" ] && [ "$FLAG_TYPE" != "interval" ]; then
-            echo "Error: flags仅支持 dynamic 或 interval"
-            Nusage
-        fi
-
-        # 3. 处理flags和auto-merge的关联规则
-        AUTO_MERGE=""
-        if [ "$FLAG_TYPE" == "interval" ]; then
-            AUTO_MERGE="auto-merge; "  # interval自动启用auto-merge
-        fi
-
-        # 4. 校验timeout格式（数字+单位 s/m/h/d）
-        if ! [[ "$TIMEOUT" =~ ^[0-9]+[smhd]$ ]]; then
-            echo "Error: timeout格式错误，示例：7d、12h、30m、60s、0s（永久）"
-            Nusage
-        fi
-
-        # 5. 构建最终的flags字符串
-        FLAGS="flags $FLAG_TYPE; timeout $TIMEOUT; "
-
-        # 6. 构建 nft 命令
-        CMD="nft add set inet fw4 $SET_NAME '{ type $network_TYPE; $AUTO_MERGE"
+        # 构建 nft 命令，自动包含 auto-merge
+        CMD="nft add set inet fw4 $SET_NAME '{ type $TYPE; auto-merge; "
         if [ -n "$COMMENT" ]; then
             CMD+="comment \"$COMMENT\"; "
         fi
-        CMD+="$FLAGS }'"
-
-        # 7. 执行命令（先检查集合是否存在，存在则删除后重建）
-        if nft list set inet fw4 "$SET_NAME" >/dev/null 2>&1; then
-            echo "Warning: 集合 $SET_NAME 已存在，先删除再重建"
-            nft delete set inet fw4 "$SET_NAME"
-        fi
+        CMD+="flags interval; $FLAGS }'"
+        # 执行命令
         echo "Executing: $CMD"
         eval $CMD || Nusage
         ;;

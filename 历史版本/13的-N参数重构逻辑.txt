@@ -1,0 +1,9 @@
+
+
+
+重构 -N 参数的逻辑，实现：
+1、创建集合时支持指定 名称、协议、备注、flags类型（dynamic/interval）、timeout；
+2、flags 规则：dynamic 禁用 auto-merge，interval 自动启用 auto-merge；
+3、timeout 默认值为 0s（永久），支持 s/m/h/d 单位；
+4、参数格式支持 flags:xxx、timeout:xxx 这种 : 分隔的自定义写法；
+5、无指定 flags 时默认用 interval（带 auto-merge）。
