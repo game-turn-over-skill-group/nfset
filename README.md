@@ -68,7 +68,7 @@ nfset del hip6 2001:b011:1234:5678::/64
 ```
 创建 IP 合集：
 nfset -N cfnet ipv4
-nfset -N cfnet ipv6
+nfset -N cfnet6 ipv6
 
 创建说明：
 nfset -N 名称(name)、协议(ipv4/ipv6) 、备注(Note) 、类型(flags)、timeout(?d?h?m?s)
